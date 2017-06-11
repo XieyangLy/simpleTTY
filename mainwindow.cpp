@@ -1,8 +1,12 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QMessageBox>
-#include <QDebug>
 #include <QFileDialog>
+#include <QTextStream>
+//#define user_debug
+#ifdef user_debug
+#include <QDebug>
+#endif
 QT_USE_NAMESPACE
 static const char blankString[] = QT_TRANSLATE_NOOP("SettingsDialog", "N/A");
 QString str2HexStr(QString str);
@@ -215,7 +219,9 @@ void MainWindow::on_sendBut_clicked()
         }
         QByteArray sendData;
         StringToHex(SendStr,sendData);
+#ifdef user_debug
         qDebug()<<sendData;
+#endif
         SendCounter+=sendData.length();
         if(ui->lrAdd->isChecked())
         {
@@ -258,9 +264,12 @@ void MainWindow::on_saveBut_clicked()
     }else{
         QFile file(fileName);
         if(!file.open(QIODevice::WriteOnly | QIODevice::Text|QIODevice::Unbuffered)){
+#ifdef user_debug
             qDebug()<<"open file failed!!";
+#endif
             return ;
         }
+#ifdef user_debug
         QFileInfo info(file);
         qDebug() << info.isDir();
         qDebug() << info.isExecutable();
@@ -268,13 +277,16 @@ void MainWindow::on_saveBut_clicked()
         qDebug() << info.completeBaseName();
         qDebug() << info.suffix();
         qDebug() << info.completeSuffix();
+#endif
         //向文件写入内容
         QTextStream  out(&file);
 //        out<<ui->serialRecText->toPlainText().remove(QChar('\0'),Qt::CaseInsensitive);
         out<<ui->serialRecText->toPlainText();
         file.flush();
         file.close();
+#ifdef user_debug
         qDebug()<<"file save complete";
+#endif
         //弹出串口
         QMessageBox msgBox;
         msgBox.setText("The document has been saved.");

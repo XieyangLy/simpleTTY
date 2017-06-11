@@ -4,6 +4,13 @@ an simple serial tools
 
 
 
+17/06/11
+	modus功能
+	添加开源协议
+	添加一个about选项
+	添加许可证GPL
+
+
 17/06/09
 	发送字符数统计						-----done	--untest
 	接收字符数统计						-----done 	--untest
