@@ -8,7 +8,7 @@
 #include <QIntValidator>
 #include <QLineEdit>
 #include <QLabel>
-
+#include "crctools.h"
 namespace Ui {
 class MainWindow;
 }
@@ -60,13 +60,15 @@ private slots:
 
     void on_refSerial_triggered();
 
+    void on_HexSend_clicked();
+
 private:
     Ui::MainWindow *ui;
     Settings currentSettings;
     QSerialPort *serial;
     QLabel *status;
     qint32 SendCounter,ReceiveCounter;
-
+    crcTools *crc;
     void fillPortsInfo();
     void fillSerialPortParamBox();
     void showStatusMessage(const QString &message);

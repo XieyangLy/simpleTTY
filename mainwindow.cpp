@@ -3,7 +3,8 @@
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QTextStream>
-//#define user_debug
+#include "crctools.h"
+#define user_debug
 #ifdef user_debug
 #include <QDebug>
 #endif
@@ -18,16 +19,19 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     fillPortsInfo();
     fillSerialPortParamBox();
+    crc=new crcTools;
     SendCounter         = 0;
     ReceiveCounter      = 0;
     ui->SendNum->setText(QString::number(SendCounter));
     ui->RecNum->setText(QString::number(ReceiveCounter));
+    currentSettings.SerialStatus=0;
 //!     [1]
 
     serial = new QSerialPort(this);
     status = new QLabel;
     ui->statusBar->addWidget(status);
     ui->serialRecText->setReadOnly(true);
+    ui->CrcBox->setDisabled(true);
     status->setText(tr("Closed"));
 
 
@@ -201,6 +205,7 @@ void MainWindow::showStatusMessage(const QString &message)
  *
  *
  */
+char ConverCharHex(char hex);
 void MainWindow::on_sendBut_clicked()
 {
     if(!serial->isOpen()){
@@ -210,6 +215,7 @@ void MainWindow::on_sendBut_clicked()
     }
     if(ui->HexSend->isChecked()){
         //hex发送方式
+
         QString SendStr;
         //1、去掉空格分割符
         SendStr=ui->lineEdit->text().remove(QChar(' '),Qt::CaseInsensitive);
@@ -222,6 +228,22 @@ void MainWindow::on_sendBut_clicked()
 #ifdef user_debug
         qDebug()<<sendData;
 #endif
+        QByteArray crcArry;
+        if(ui->CrcBox->isChecked()){
+            //向数据末尾添加CRC校验值,且crc模块仅在hex下生效,用于modbus等需要crc校验的场合.
+            uint16_t crcval=crc->ucMBCRC16(sendData.data(),sendData.length());
+            //将crc值写入
+            uint8_t valH=(crcval>>8)&0xFF;
+            uint8_t valL=(crcval)&0xFF;
+            crcArry[0]=ConverCharHex((valL>>4)&0x0F);
+            crcArry[1]=ConverCharHex(valL&0x0F);
+            crcArry[2]=' ';
+            crcArry[3]=ConverCharHex((valH>>4)&0x0F);
+            crcArry[4]=ConverCharHex(valH&0x0F);
+            qDebug("0x%x,0x%x",valH,valL);
+            ui->crcDisplay->setText(QString(crcArry));
+            qDebug()<<crcArry;
+        }
         SendCounter+=sendData.length();
         if(ui->lrAdd->isChecked())
         {
@@ -229,8 +251,22 @@ void MainWindow::on_sendBut_clicked()
         }else{
             serial->write(sendData);
         }
-
-
+        if(ui->echoBox->isChecked()){
+            //将发送数据回显到显示窗口;
+            //分离字符串
+           QString str=QString(sendData.toHex());
+           uint strlen=str.length();
+#ifdef user_debug
+           qDebug()<<strlen;
+#endif
+           for(int i=strlen;i>1;)
+           {
+              str.insert(i,' ');
+              i-=2;
+           }
+           //ui->serialRecText->insertPlainText(QString(data.toHex()));
+           ui->serialRecText->insertPlainText(str.append(crcArry));
+        }
     }else{
         //非Hex发送
         SendCounter+=ui->lineEdit->text().length();
@@ -240,7 +276,12 @@ void MainWindow::on_sendBut_clicked()
         }else{
             serial->write(ui->lineEdit->text().toLocal8Bit());
         }
+        if(ui->echoBox->isChecked()){
+            //将发送数据回显到显示窗口;
+            ui->serialRecText->insertPlainText(ui->lineEdit->text().append("\n"));
+        }
     }
+
     // ui->serialRecText->insertPlainText("\n");
     ui->SendNum->setText(QString::number(SendCounter));
 }
@@ -352,10 +393,10 @@ void MainWindow::readData()
         //分离字符串
        QString str=QString(data.toHex());
        uint strlen=str.length();
-       for(uint i=0;i<strlen;)
+       for(uint i=strlen;i>1;)
        {
           str.insert(i,' ');
-          i+=2;
+          i-=2;
        }
        //ui->serialRecText->insertPlainText(QString(data.toHex()));
        ui->serialRecText->insertPlainText(str);
@@ -429,4 +470,25 @@ char MainWindow::ConvertHexChar(char ch)
     else if ((ch >= 'a') && (ch <= 'f'))
         return ch - 'a' + 10;
     else return ch -  ch;
+}
+
+char ConverCharHex(char hex)
+{
+    if((hex>=0)&&(hex<=9)){
+        return hex+'0';
+    }else{
+        return hex-10+'a';
+    }
+
+
+}
+
+void MainWindow::on_HexSend_clicked()
+{
+    if(ui->HexSend->isChecked()){
+        ui->CrcBox->setDisabled(false);
+    }else{
+        ui->CrcBox->setChecked(false);
+        ui->CrcBox->setDisabled(true);
+    }
 }
