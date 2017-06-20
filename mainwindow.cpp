@@ -408,10 +408,16 @@ void MainWindow::readData()
         int lineCount=ui->serialRecText->document()->blockCount();          //获取行数
     #define MaximumLineNum      500
         if(lineCount>MaximumLineNum){
+ qDebug()<<"500 line clean start"<<endl;
             //删除前边的多余行
+//              QTextCursor txCur=ui->serialRecText->textCursor();
+//              for(int i=lineCount-MaximumLineNum;i>0;i++){
+//                  txCur.select(QTextCursor::BlockUnderCursor);
+//                  txCur.removeSelectedText();
+//              }
             QTextCursor txCur=ui->serialRecText->textCursor();
             txCur.setPosition(0);
-            for(int i=0,det=lineCount-MaximumLineNum;det;i++){
+            for(int det=lineCount-MaximumLineNum;det;det--){
                 txCur.movePosition(QTextCursor::NextBlock,QTextCursor::KeepAnchor);
             }
             txCur.removeSelectedText();
